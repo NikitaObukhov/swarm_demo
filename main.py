@@ -10,7 +10,7 @@ from swarm_tf.common import VolumeClaim, get_user_data_script, create_firewall
 from terrascript.digitalocean.r import *
 
 # Setup
-do_token = "<>"
+do_token = "<Place your digital ocean token here>"
 
 # Common
 domain = "swarmdemo.com"
