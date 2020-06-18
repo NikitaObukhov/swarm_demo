@@ -1,0 +1,67 @@
+version: '3.2'
+
+services:
+  portainer:
+    image: portainer/portainer:1.22.0
+    ports:
+      - "9000:9000"
+    command: -H "tcp://tasks.agent:9001" --tlsskipverify
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - data:/data
+    networks:
+      - net
+      - main
+    deploy:
+      replicas: 1
+      labels:
+        com.byjg.easyhaproxy.definitions: "http"
+        com.byjg.easyhaproxy.port.http: "80"
+        com.byjg.easyhaproxy.host.http: "portainer.example.com"
+        com.byjg.easyhaproxy.localport.http: "9000"
+      placement:
+        constraints: [node.role == manager]
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: '0.10'
+          memory: 128M
+        reservations:
+          cpus: '0.05'
+          memory: 10M
+
+  agent:
+    image: portainer/agent:1.4.0
+    environment:
+      AGENT_CLUSTER_ADDR: tasks.agent
+      CAP_HOST_MANAGEMENT: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/volumes:/var/lib/docker/volumes
+      - /:/host
+    networks:
+      - net
+    deploy:
+      mode: global
+      placement:
+        constraints: [node.platform.os == linux]
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: '0.10'
+          memory: 128M
+        reservations:
+          cpus: '0.05'
+          memory: 10M
+
+volumes:
+  data:
+
+networks:
+  main:
+    external: true
+  net:
+    driver: overlay
+    attachable: true

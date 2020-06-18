@@ -1,0 +1,3 @@
+terrascript==0.6.0
+terraobject==0.0.1
+swarm_tf
