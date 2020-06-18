@@ -1,0 +1,39 @@
+version: "3.4"
+services:
+  front:
+    image: byjg/easy-haproxy:2.0
+    deploy:
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: '0.20'
+          memory: 128M
+        reservations:
+          cpus: '0.10'
+          memory: 10M
+      update_config:
+        parallelism: 1
+        delay: 10s
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+    environment:
+      DISCOVER: "swarm"
+      HAPROXY_USERNAME: "admin"
+      HAPROXY_PASSWORD: "supersecretpassword"
+      HAPROXY_STATS_PORT: "1936"
+      HAPROXY_CUSTOMERRORS: "false"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - main
+    ports:
+      - 80:80
+      - 443:443
+      - 1936:1936
+networks:
+  main:
+    external: true
+
+

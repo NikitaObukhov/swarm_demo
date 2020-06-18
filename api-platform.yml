@@ -1,0 +1,112 @@
+version: '3.4'
+
+services:
+  php:
+    image: nikitaobukhov/php
+    restart: always
+    depends_on:
+      - db
+    environment:
+      - APP_DEBUG=1
+      - APP_ENV=prod
+      - APP_SECRET=3c857494cfcc42c700dfb7a6
+      - CORS_ALLOW_ORIGIN=^http://(?:\w+\.)?example\.com$$
+      - DATABASE_URL=postgres://api-platform:4e3bc2766fe81df300d56481@db/api
+      - MERCURE_JWT_SECRET=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJtZXJjdXJlIjp7InN1YnNjcmliZSI6WyJmb28iLCJiYXIiXSwicHVibGlzaCI6WyJmb28iXX19.B0MuTRMPLrut4Nt3wxVvLtfWB_y189VEpWMlSmIQABQ
+      - MERCURE_SUBSCRIBE_URL=http://mercure.example.com/hub
+      - TRUSTED_HOSTS=^(?:localhost|foo|api|api\.example\.com)$$
+      - TRUSTED_PROXIES=10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+    networks:
+      - net
+  api:
+    image: nikitaobukhov/nginx
+    restart: always
+    depends_on:
+      - php
+    environment:
+      - ALLOW_ANONYMOUS=0
+    deploy:
+      replicas: 1
+      labels:
+        com.byjg.easyhaproxy.definitions: "http"
+        com.byjg.easyhaproxy.port.http: "80"
+        com.byjg.easyhaproxy.host.http: "api.example.com"
+        com.byjg.easyhaproxy.localport.http: "80"
+      placement:
+        constraints: [node.role == worker]
+    networks:
+      - net
+      - main
+
+  db:
+    # in production, we may want to use a managed database service
+    image: postgres:10-alpine
+    restart: always
+    environment:
+      - POSTGRES_DB=api
+      - POSTGRES_PASSWORD=4e3bc2766fe81df300d56481
+      - POSTGRES_USER=api-platform
+    volumes:
+      - postgres_data:/var/lib/postgresql/data:rw
+    networks:
+      - net
+
+  mercure:
+    # in production, we may want to use the managed version of Mercure
+    # https://mercure.rocks/pricing
+    image: dunglas/mercure
+    restart: always
+    environment:
+      - ALLOW_ANONYMOUS=0
+      - CORS_ALLOWED_ORIGINS=http://example.com,http://admin.example.com
+      - JWT_KEY=4121344212538417de3e2118
+      - VIRTUAL_HOST=mercure.example.com
+    networks:
+      - net
+
+  client:
+    # in production, we may want to use a static website hosting service
+    # https://facebook.github.io/create-react-app/docs/deployment
+    image: nikitaobukhov/client
+    environment:
+      - VIRTUAL_HOST=example.com,www.example.com
+    deploy:
+      replicas: 1
+      labels:
+        com.byjg.easyhaproxy.definitions: "http"
+        com.byjg.easyhaproxy.port.http: "80"
+        com.byjg.easyhaproxy.host.http: "example.com"
+        com.byjg.easyhaproxy.localport.http: "80"
+    networks:
+      - net
+      - main
+
+
+  admin:
+    # in production, we may want to use a static website hosting service
+    # https://facebook.github.io/create-react-app/docs/deployment
+    image: nikitaobukhov/admin
+    environment:
+      - VIRTUAL_HOST=admin.example.com
+    deploy:
+      replicas: 1
+      labels:
+        com.byjg.easyhaproxy.definitions: "http"
+        com.byjg.easyhaproxy.port.http: "80"
+        com.byjg.easyhaproxy.host.http: "admin.example.com"
+        com.byjg.easyhaproxy.localport.http: "80"
+    networks:
+      - net
+      - main
+
+
+
+volumes:
+    postgres_data:
+
+networks:
+  main:
+    external: true
+  net:
+    driver: overlay
+    attachable: true
